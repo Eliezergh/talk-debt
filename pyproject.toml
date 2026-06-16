@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "talk-debt"
-version = "0.0.5"
+version = "0.1.0"
 description = "Floating standup timer that counts into red debt."
 readme = "README.md"
 requires-python = ">=3.12"
