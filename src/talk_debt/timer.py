@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from dataclasses import dataclass, field
 import math
 import time
+from collections.abc import Callable
+from dataclasses import dataclass, field
 
 
 def _clock() -> float:

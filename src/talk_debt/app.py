@@ -4,7 +4,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
-from .settings import AppSettings, SettingsStore
+from .settings import SettingsStore
 from .timer import TalkDebtTimer
 from .tray import TrayController
 from .ui import TimerWindow
