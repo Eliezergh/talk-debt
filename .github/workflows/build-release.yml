@@ -148,7 +148,11 @@ jobs:
 
       - name: Build macOS app bundle
         run: |
-          pyinstaller --noconfirm --windowed --name "Talk Debt" --paths src src/talk_debt/app.py
+          pyinstaller --clean --noconfirm --windowed --name "Talk Debt" --paths src src/talk_debt/app.py
+
+      - name: Ad-hoc code sign app bundle
+        run: |
+          codesign --force --deep --sign - "dist/Talk Debt.app"
 
       - name: Create release archive
         run: |
@@ -210,9 +214,10 @@ jobs:
 
             ### Installation
             1. Download `${{ needs.build.outputs.artifact_name }}.zip` and unzip it.
-            2. Run `Talk Debt.app` on macOS.
-            3. Or install the wheel with pip:
+            2. Drag `Talk Debt.app` to your Applications folder.
+            3. Right-click → **Open** on first launch (ad-hoc signed).
+            4. Or install the wheel with pip:
                ```
                pip install talk_debt-${{ needs.build.outputs.version }}-py3-none-any.whl
                ```
-            4. Run with `python -m talk_debt.app` (requires Python 3.12+ and PySide6).
+            5. Run with `python -m talk_debt.app` (requires Python 3.12+ and PySide6).
