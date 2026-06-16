@@ -220,4 +220,4 @@ jobs:
                ```
                pip install talk_debt-${{ needs.build.outputs.version }}-py3-none-any.whl
                ```
-            5. Run with `python -m talk_debt.app` (requires Python 3.12+ and PySide6).
+            5. Run with `python -m talk_debt` (requires Python 3.12+ and PySide6).
