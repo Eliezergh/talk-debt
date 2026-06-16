@@ -148,7 +148,7 @@ jobs:
 
       - name: Build macOS app bundle
         run: |
-          pyinstaller --clean --noconfirm --windowed --name "Talk Debt" --paths src src/talk_debt/__main__.py
+          pyinstaller --clean --noconfirm --windowed --name "Talk Debt" --icon assets/talk-debt.icns --paths src src/talk_debt/__main__.py
 
       - name: Ad-hoc code sign app bundle
         run: |

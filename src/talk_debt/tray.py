@@ -6,7 +6,6 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QInputDialog,
     QMenu,
-    QStyle,
     QSystemTrayIcon,
     QWidget,
 )
@@ -17,6 +16,7 @@ class TrayController:
         self,
         parent: QWidget,
         *,
+        app_icon: QIcon,
         start_pause: Callable[[], None],
         reset: Callable[[], None],
         next_speaker: Callable[[], None],
@@ -34,8 +34,7 @@ class TrayController:
         self._toggle_click_through = toggle_click_through
         self._toggle_always_on_top = toggle_always_on_top
 
-        icon = parent.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
-        self.tray_icon = QSystemTrayIcon(QIcon(icon), parent)
+        self.tray_icon = QSystemTrayIcon(app_icon, parent)
         self.menu = QMenu("Talk Debt", parent)
 
         self.start_pause_action = self.menu.addAction("Start / Pause")
