@@ -26,6 +26,8 @@ class TimerWindow(QWidget):
             | Qt.WindowType.WindowStaysOnTopHint
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
+        # Keep this tool window visible even when Talk Debt is not the active app on macOS.
+        self.setAttribute(Qt.WidgetAttribute.WA_MacAlwaysShowToolWindow, True)
         self.setStyleSheet("background: #1f1f1f; color: #f0f0f0; border-radius: 10px;")
 
         self.title_label = QLabel("Talk Debt")
@@ -77,6 +79,8 @@ class TimerWindow(QWidget):
             flags &= ~Qt.WindowType.WindowStaysOnTopHint
         self.setWindowFlags(flags)
         self.show()
+        if enabled:
+            self.raise_()
 
     def set_click_through(self, enabled: bool) -> None:
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, enabled)
