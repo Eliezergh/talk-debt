@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import json
 import uuid
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from collections.abc import Callable
 
 DEFAULT_STATS_PATH = Path.home() / ".talk_debt_stats.json"
 RETENTION_DAYS = 7
@@ -84,7 +84,10 @@ class StatsStore:
                             )
                         ),
                     ),
-                    consumed_seconds=max(0, int(loop.get("consumed_seconds", loop.get("seconds", 0)))),
+                    consumed_seconds=max(
+                        0,
+                        int(loop.get("consumed_seconds", loop.get("seconds", 0))),
+                    ),
                 )
                 for loop in item.get("loops", [])
             ]
@@ -106,7 +109,11 @@ class StatsStore:
         kept: list[SessionStat] = []
         for session in data.sessions:
             try:
-                ended_or_started = _from_iso(session.ended_at) if session.ended_at else _from_iso(session.started_at)
+                ended_or_started = (
+                    _from_iso(session.ended_at)
+                    if session.ended_at
+                    else _from_iso(session.started_at)
+                )
             except ValueError:
                 continue
             if ended_or_started >= cutoff:

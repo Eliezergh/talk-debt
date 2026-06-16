@@ -144,9 +144,11 @@ class TalkDebtApp:
             )
             if loop.went_over:
                 detail += f" (over by {self._format_duration(loop.over_seconds)})"
-            lines.append(
-                f"<li><span style='color:{color};'><b>{escape(status)}</b></span> - {escape(detail)}</li>"
+            row = (
+                f"<li><span style='color:{color};'><b>{escape(status)}</b></span>"
+                f" - {escape(detail)}</li>"
             )
+            lines.append(row)
         lines.append("</ul>")
         return lines
 
@@ -154,7 +156,9 @@ class TalkDebtApp:
         sessions = self.stats_store.list_sessions()
         current = self.stats_store.get_session(self.session_id)
 
-        lines: list[str] = ["<div style='font-family: Helvetica Neue, Helvetica, Arial, sans-serif;'>"]
+        lines: list[str] = [
+            "<div style='font-family: Helvetica Neue, Helvetica, Arial, sans-serif;'>"
+        ]
         if current is not None:
             lines.extend(self._render_session(current, title="Current session"))
         else:
