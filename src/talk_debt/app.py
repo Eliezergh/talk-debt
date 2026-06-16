@@ -164,7 +164,7 @@ class TalkDebtApp:
         other_sessions = [s for s in sessions if s.session_id != self.session_id]
         if other_sessions:
             lines.append("<h3>Previous sessions (last 7 days)</h3>")
-            for idx, session in enumerate(other_sessions, start=1):
+            for idx, session in enumerate(reversed(other_sessions), start=1):
                 lines.extend(self._render_session(session, title=f"Session {idx}"))
 
         lines.append("</div>")
