@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 import math
 import time
@@ -21,7 +22,7 @@ class TalkDebtTimer:
     duration_seconds: int = 120
     _elapsed_paused: float = 0.0
     _started_at: float | None = None
-    _time_fn: callable = field(default=_clock, repr=False)
+    _time_fn: Callable[[], float] = field(default=_clock, repr=False)
 
     @property
     def is_running(self) -> bool:
