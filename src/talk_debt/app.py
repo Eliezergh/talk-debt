@@ -4,6 +4,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
+from .icon import create_app_icon
 from .settings import SettingsStore
 from .timer import TalkDebtTimer
 from .tray import TrayController
@@ -14,11 +15,14 @@ class TalkDebtApp:
     def __init__(self) -> None:
         self.qt_app = QApplication(sys.argv)
         self.qt_app.setQuitOnLastWindowClosed(False)
+        self.app_icon = create_app_icon()
+        self.qt_app.setWindowIcon(self.app_icon)
 
         self.settings_store = SettingsStore()
         self.settings = self.settings_store.load()
         self.timer_model = TalkDebtTimer(duration_seconds=self.settings.duration_seconds)
         self.window = TimerWindow(self.timer_model)
+        self.window.setWindowIcon(self.app_icon)
 
         self.window.start_pause_requested.connect(self._toggle_start_pause)
         self.window.reset_requested.connect(self._reset)
@@ -26,6 +30,7 @@ class TalkDebtApp:
 
         self.tray = TrayController(
             self.window,
+            app_icon=self.app_icon,
             start_pause=self._toggle_start_pause,
             reset=self._reset,
             next_speaker=self._next_speaker,
