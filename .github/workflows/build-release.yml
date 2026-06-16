@@ -148,7 +148,7 @@ jobs:
 
       - name: Build macOS app bundle
         run: |
-          pyinstaller --clean --noconfirm --windowed --name "Talk Debt" --paths src src/talk_debt/app.py
+          pyinstaller --clean --noconfirm --windowed --name "Talk Debt" --paths src src/talk_debt/__main__.py
 
       - name: Ad-hoc code sign app bundle
         run: |
@@ -158,6 +158,7 @@ jobs:
         run: |
           ARTIFACT="${{ steps.meta.outputs.artifact_name }}"
           mkdir -p dist_release
+          [ -d "dist/Talk Debt.app" ] || (echo "Expected app bundle dist/Talk Debt.app not found" && exit 1)
           cp -R "dist/Talk Debt.app" dist_release/
           cp dist/*.whl dist_release/ 2>/dev/null || true
           cp dist/*.tar.gz dist_release/ 2>/dev/null || true
