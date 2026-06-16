@@ -8,12 +8,11 @@ keeps counting in red once time goes negative.
 
 - Always-on-top floating timer window
 - Draggable frameless UI
-- Start / pause / reset / next speaker controls
+- Start / stop / reset / next speaker controls
 - Preset durations: 30s, 1m, 2m, 3m, 5m
 - Custom duration in seconds or minutes
 - Tray/menu bar controls for timer and mode toggles
 - Compact mode and screen-share mode
-- Optional click-through mode
 - Local JSON settings persistence (duration, position, modes)
 
 ## Requirements
@@ -46,11 +45,11 @@ PYTHONPATH=src python -m unittest discover -s tests -p "test_*.py"
 - Drag the timer window to place it near your board
 - Use buttons or tray menu to:
   - Start / Pause
+  - Start / Stop
   - Reset
   - Next speaker
   - Change duration presets or set custom duration
   - Toggle compact mode / screen-share mode
-  - Toggle click-through mode
   - Toggle always-on-top
 - Timer display:
   - Positive: `MM:SS`

@@ -13,7 +13,6 @@ class AppSettings:
     window_x: int | None = None
     window_y: int | None = None
     mode: str = "normal"
-    click_through: bool = False
     always_on_top: bool = True
 
 
@@ -34,7 +33,6 @@ class SettingsStore:
             window_x=data.get("window_x"),
             window_y=data.get("window_y"),
             mode=data.get("mode", "normal"),
-            click_through=bool(data.get("click_through", False)),
             always_on_top=bool(data.get("always_on_top", True)),
         )
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QFont, QMouseEvent
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QDialog, QHBoxLayout, QLabel, QPushButton, QTextEdit, QVBoxLayout, QWidget
 
 from .timer import TalkDebtTimer, format_signed_mmss
 
@@ -11,6 +11,7 @@ class TimerWindow(QWidget):
     start_pause_requested = Signal()
     reset_requested = Signal()
     next_speaker_requested = Signal()
+    stats_requested = Signal()
 
     def __init__(self, timer_model: TalkDebtTimer) -> None:
         super().__init__()
@@ -40,14 +41,17 @@ class TimerWindow(QWidget):
         self.start_pause_button = QPushButton("Start")
         self.reset_button = QPushButton("Reset")
         self.next_button = QPushButton("Next")
+        self.stats_button = QPushButton("Stats")
         self.start_pause_button.clicked.connect(self.start_pause_requested.emit)
         self.reset_button.clicked.connect(self.reset_requested.emit)
         self.next_button.clicked.connect(self.next_speaker_requested.emit)
+        self.stats_button.clicked.connect(self.stats_requested.emit)
 
         buttons = QHBoxLayout()
         buttons.addWidget(self.start_pause_button)
         buttons.addWidget(self.reset_button)
         buttons.addWidget(self.next_button)
+        buttons.addWidget(self.stats_button)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 12, 12, 12)
@@ -82,9 +86,6 @@ class TimerWindow(QWidget):
         if enabled:
             self.raise_()
 
-    def set_click_through(self, enabled: bool) -> None:
-        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, enabled)
-
     def apply_mode(self, mode: str) -> None:
         self._mode = mode
         if mode == "compact":
@@ -93,18 +94,21 @@ class TimerWindow(QWidget):
             self.start_pause_button.hide()
             self.reset_button.hide()
             self.next_button.hide()
+            self.stats_button.hide()
         elif mode == "screen_share":
             self.time_label.setFont(QFont("Menlo", 50, QFont.Weight.Bold))
             self.resize(420, 220)
             self.start_pause_button.show()
             self.reset_button.show()
             self.next_button.show()
+            self.stats_button.show()
         else:
             self.time_label.setFont(QFont("Menlo", 34, QFont.Weight.Bold))
             self.resize(320, 165)
             self.start_pause_button.show()
             self.reset_button.show()
             self.next_button.show()
+            self.stats_button.show()
 
     def refresh(self) -> None:
         remaining = self.timer_model.signed_remaining_seconds()
@@ -112,7 +116,7 @@ class TimerWindow(QWidget):
         in_debt = remaining < 0
         self.time_label.setStyleSheet("color: #ff4d4f;" if in_debt else "color: #f0f0f0;")
         self.title_label.setText("Debt" if in_debt else "Talk Debt")
-        self.start_pause_button.setText("Pause" if self.timer_model.is_running else "Start")
+        self.start_pause_button.setText("Stop" if self.timer_model.is_running else "Start")
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         if event.button() == Qt.MouseButton.LeftButton:
@@ -131,3 +135,31 @@ class TimerWindow(QWidget):
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         self._drag_offset = None
         super().mouseReleaseEvent(event)
+
+
+class StatsDialog(QDialog):
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Talk Debt Statistics")
+        self.resize(540, 420)
+
+        title = QLabel("Session statistics (retention: last 7 days)")
+        title.setStyleSheet("font-weight: 600;")
+
+        self.report = QTextEdit()
+        self.report.setReadOnly(True)
+
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(self.accept)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.addWidget(title)
+        layout.addWidget(self.report)
+        layout.addWidget(close_button)
+
+    def set_report(self, text: str, *, rich: bool = False) -> None:
+        if rich:
+            self.report.setHtml(text)
+            return
+        self.report.setPlainText(text)

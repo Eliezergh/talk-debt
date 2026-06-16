@@ -37,7 +37,6 @@ class SettingsStoreTests(unittest.TestCase):
                   "window_x": 15,
                   "window_y": 30,
                   "mode": "compact",
-                  "click_through": 1,
                   "always_on_top": 0
                 }
                 """,
@@ -51,7 +50,6 @@ class SettingsStoreTests(unittest.TestCase):
             self.assertEqual(loaded.window_x, 15)
             self.assertEqual(loaded.window_y, 30)
             self.assertEqual(loaded.mode, "compact")
-            self.assertTrue(loaded.click_through)
             self.assertFalse(loaded.always_on_top)
 
     def test_save_writes_json(self) -> None:
@@ -63,7 +61,6 @@ class SettingsStoreTests(unittest.TestCase):
                 window_x=100,
                 window_y=200,
                 mode="screen_share",
-                click_through=True,
                 always_on_top=False,
             )
 

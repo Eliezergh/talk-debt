@@ -22,7 +22,6 @@ class TrayController:
         next_speaker: Callable[[], None],
         set_duration_seconds: Callable[[int], None],
         set_mode: Callable[[str], None],
-        toggle_click_through: Callable[[bool], None],
         toggle_always_on_top: Callable[[bool], None],
         quit_app: Callable[[], None],
     ) -> None:
@@ -31,13 +30,12 @@ class TrayController:
         self._next_speaker = next_speaker
         self._set_duration_seconds = set_duration_seconds
         self._set_mode = set_mode
-        self._toggle_click_through = toggle_click_through
         self._toggle_always_on_top = toggle_always_on_top
 
         self.tray_icon = QSystemTrayIcon(app_icon, parent)
         self.menu = QMenu("Talk Debt", parent)
 
-        self.start_pause_action = self.menu.addAction("Start / Pause")
+        self.start_pause_action = self.menu.addAction("Start / Stop")
         self.start_pause_action.triggered.connect(self._start_pause)
         self.reset_action = self.menu.addAction("Reset")
         self.reset_action.triggered.connect(self._reset)
@@ -69,10 +67,6 @@ class TrayController:
         self.screenshare_action.setCheckable(True)
         self.screenshare_action.toggled.connect(self._toggle_screenshare_mode)
 
-        self.click_through_action = self.menu.addAction("Toggle click-through mode")
-        self.click_through_action.setCheckable(True)
-        self.click_through_action.toggled.connect(self._toggle_click_through)
-
         self.on_top_action = self.menu.addAction("Toggle always-on-top")
         self.on_top_action.setCheckable(True)
         self.on_top_action.setChecked(True)
@@ -85,9 +79,6 @@ class TrayController:
         self.tray_icon.setContextMenu(self.menu)
         self.tray_icon.setToolTip("Talk Debt")
         self.tray_icon.show()
-
-    def set_click_through_checked(self, enabled: bool) -> None:
-        self.click_through_action.setChecked(enabled)
 
     def set_always_on_top_checked(self, enabled: bool) -> None:
         self.on_top_action.setChecked(enabled)
