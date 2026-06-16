@@ -19,6 +19,8 @@ jobs:
   version-bump:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.bump.outputs.version }}
     steps:
@@ -62,6 +64,8 @@ jobs:
     needs: [version-bump]
     if: always() && (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')) && (needs.version-bump.result == 'success' || needs.version-bump.result == 'skipped')
     runs-on: macos-15
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -96,6 +100,8 @@ jobs:
     needs: [version-bump, test]
     if: always() && (github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')) && needs.test.result == 'success'
     runs-on: macos-15
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.meta.outputs.version }}
       artifact_name: ${{ steps.meta.outputs.artifact_name }}
@@ -141,13 +147,10 @@ jobs:
 
       - name: Create release archive
         run: |
-          VERSION="${{ steps.meta.outputs.version }}"
           ARTIFACT="${{ steps.meta.outputs.artifact_name }}"
           mkdir -p dist_release
-          cp dist/talk_debt-${VERSION}-py3-none-any.whl dist_release/ 2>/dev/null || \
-            cp dist/*.whl dist_release/ 2>/dev/null || true
-          cp dist/talk_debt-${VERSION}.tar.gz dist_release/ 2>/dev/null || \
-            cp dist/*.tar.gz dist_release/ 2>/dev/null || true
+          cp dist/*.whl dist_release/ 2>/dev/null || true
+          cp dist/*.tar.gz dist_release/ 2>/dev/null || true
           cp README.md dist_release/
           cd dist_release && zip -r "../${ARTIFACT}.zip" .
 
