@@ -11,9 +11,10 @@ keeps counting in red once time goes negative.
 - Start / stop / reset / next speaker controls
 - Preset durations: 30s, 1m, 2m, 3m, 5m
 - Custom duration in seconds or minutes
+- Inline speaker selector plus a simple speaker roster editor
 - Tray/menu bar controls for timer and mode toggles
 - Compact mode and screen-share mode
-- Local JSON settings persistence (duration, position, modes)
+- Local JSON settings persistence (duration, position, modes, speakers)
 
 ## Requirements
 
@@ -48,6 +49,8 @@ PYTHONPATH=src python -m unittest discover -s tests -p "test_*.py"
   - Start / Stop
   - Reset
   - Next speaker
+  - Pick the active speaker from the inline selector
+  - Edit the speaker roster from the window
   - Change duration presets or set custom duration
   - Toggle compact mode / screen-share mode
   - Toggle always-on-top
@@ -73,6 +76,5 @@ You can also package with alternatives like Briefcase or PyInstaller.
 
 - Keyboard shortcuts (start/pause, reset, next speaker)
 - Sound cue when crossing zero
-- Per-speaker timing history
 - Total standup overflow tracker
 - “Today’s Talk Debt” summary panel

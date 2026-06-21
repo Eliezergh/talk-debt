@@ -9,6 +9,7 @@ from pathlib import Path
 
 DEFAULT_STATS_PATH = Path.home() / ".talk_debt_stats.json"
 RETENTION_DAYS = 7
+DEFAULT_SPEAKER_LABEL = "Unassigned"
 
 
 def _utcnow() -> datetime:
@@ -27,6 +28,7 @@ class LoopStat:
     timestamp: str
     allocated_seconds: int
     consumed_seconds: int
+    speaker_name: str = DEFAULT_SPEAKER_LABEL
 
     @property
     def over_seconds(self) -> int:
@@ -88,6 +90,10 @@ class StatsStore:
                         0,
                         int(loop.get("consumed_seconds", loop.get("seconds", 0))),
                     ),
+                    speaker_name=str(
+                        loop.get("speaker_name", loop.get("speaker", DEFAULT_SPEAKER_LABEL))
+                    ).strip()
+                    or DEFAULT_SPEAKER_LABEL,
                 )
                 for loop in item.get("loops", [])
             ]
@@ -128,12 +134,20 @@ class StatsStore:
         self._save(data)
         return session_id
 
-    def add_loop(self, session_id: str, allocated_seconds: int, consumed_seconds: int) -> None:
+    def add_loop(
+        self,
+        session_id: str,
+        allocated_seconds: int,
+        consumed_seconds: int,
+        *,
+        speaker_name: str = DEFAULT_SPEAKER_LABEL,
+    ) -> None:
         if consumed_seconds <= 0:
             return
 
         planned = max(1, int(allocated_seconds))
         consumed = max(0, int(consumed_seconds))
+        speaker = str(speaker_name).strip() or DEFAULT_SPEAKER_LABEL
         data = self._load()
         self._prune(data)
         for session in data.sessions:
@@ -143,6 +157,7 @@ class StatsStore:
                         timestamp=self._now().isoformat(),
                         allocated_seconds=planned,
                         consumed_seconds=consumed,
+                        speaker_name=speaker,
                     )
                 )
                 break

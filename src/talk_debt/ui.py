@@ -3,16 +3,57 @@ from __future__ import annotations
 from PySide6.QtCore import QPoint, Qt, QTimer, Signal
 from PySide6.QtGui import QFont, QMouseEvent
 from PySide6.QtWidgets import (
+    QComboBox,
     QDialog,
+    QDialogButtonBox,
     QHBoxLayout,
     QLabel,
+    QPlainTextEdit,
     QPushButton,
     QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
+from .settings import DEFAULT_SPEAKER_LABEL
 from .timer import TalkDebtTimer, format_signed_mmss
+
+
+class SpeakerSettingsDialog(QDialog):
+    def __init__(self, speaker_names: list[str], parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("Manage speakers")
+        self.resize(360, 280)
+
+        title = QLabel("Enter one speaker name per line.")
+        title.setStyleSheet("font-weight: 600;")
+
+        self.editor = QPlainTextEdit()
+        self.editor.setPlaceholderText("Alex\nSam\nJordan")
+        self.editor.setPlainText("\n".join(speaker_names))
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.addWidget(title)
+        layout.addWidget(self.editor)
+        layout.addWidget(buttons)
+
+    def speaker_names(self) -> list[str]:
+        names: list[str] = []
+        seen: set[str] = set()
+        for raw_line in self.editor.toPlainText().splitlines():
+            name = raw_line.strip()
+            if not name or name in seen:
+                continue
+            seen.add(name)
+            names.append(name)
+        return names
 
 
 class TimerWindow(QWidget):
@@ -20,6 +61,8 @@ class TimerWindow(QWidget):
     reset_requested = Signal()
     next_speaker_requested = Signal()
     stats_requested = Signal()
+    speaker_changed = Signal(str)
+    manage_speakers_requested = Signal()
 
     def __init__(self, timer_model: TalkDebtTimer) -> None:
         super().__init__()
@@ -46,6 +89,20 @@ class TimerWindow(QWidget):
         self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.time_label.setFont(QFont("Menlo", 34, QFont.Weight.Bold))
 
+        self.speaker_label = QLabel("Speaker")
+        self.speaker_combo = QComboBox()
+        self.speaker_combo.currentTextChanged.connect(self.speaker_changed.emit)
+        self.manage_speakers_button = QPushButton("Edit")
+        self.manage_speakers_button.clicked.connect(self.manage_speakers_requested.emit)
+
+        speaker_row = QHBoxLayout()
+        speaker_row.addWidget(self.speaker_label)
+        speaker_row.addWidget(self.speaker_combo, 1)
+        speaker_row.addWidget(self.manage_speakers_button)
+        speaker_widget = QWidget()
+        speaker_widget.setLayout(speaker_row)
+        self.speaker_widget = speaker_widget
+
         self.start_pause_button = QPushButton("Start")
         self.reset_button = QPushButton("Reset")
         self.next_button = QPushButton("Next")
@@ -60,12 +117,16 @@ class TimerWindow(QWidget):
         buttons.addWidget(self.reset_button)
         buttons.addWidget(self.next_button)
         buttons.addWidget(self.stats_button)
+        buttons_widget = QWidget()
+        buttons_widget.setLayout(buttons)
+        self.buttons_widget = buttons_widget
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 12, 12, 12)
         layout.addWidget(self.title_label)
         layout.addWidget(self.time_label)
-        layout.addLayout(buttons)
+        layout.addWidget(self.speaker_widget)
+        layout.addWidget(self.buttons_widget)
 
         self._ticker = QTimer(self)
         self._ticker.setInterval(200)
@@ -81,6 +142,22 @@ class TimerWindow(QWidget):
     @property
     def mode(self) -> str:
         return self._mode
+
+    def set_speakers(self, speaker_names: list[str], current_speaker: str) -> None:
+        self.speaker_combo.blockSignals(True)
+        self.speaker_combo.clear()
+        if speaker_names:
+            self.speaker_combo.addItems(speaker_names)
+            index = self.speaker_combo.findText(current_speaker)
+            if index < 0:
+                index = 0
+            self.speaker_combo.setEnabled(True)
+            self.speaker_combo.setCurrentIndex(index)
+        else:
+            self.speaker_combo.addItem(DEFAULT_SPEAKER_LABEL)
+            self.speaker_combo.setEnabled(False)
+            self.speaker_combo.setCurrentIndex(0)
+        self.speaker_combo.blockSignals(False)
 
     def set_always_on_top(self, enabled: bool) -> None:
         self._always_on_top = enabled
@@ -98,25 +175,17 @@ class TimerWindow(QWidget):
         self._mode = mode
         if mode == "compact":
             self.time_label.setFont(QFont("Menlo", 24, QFont.Weight.Bold))
-            self.resize(230, 115)
-            self.start_pause_button.hide()
-            self.reset_button.hide()
-            self.next_button.hide()
-            self.stats_button.hide()
+            self.resize(290, 150)
+            self.buttons_widget.hide()
         elif mode == "screen_share":
             self.time_label.setFont(QFont("Menlo", 50, QFont.Weight.Bold))
-            self.resize(420, 220)
-            self.start_pause_button.show()
-            self.reset_button.show()
-            self.next_button.show()
-            self.stats_button.show()
+            self.resize(460, 250)
+            self.buttons_widget.show()
         else:
             self.time_label.setFont(QFont("Menlo", 34, QFont.Weight.Bold))
-            self.resize(320, 165)
-            self.start_pause_button.show()
-            self.reset_button.show()
-            self.next_button.show()
-            self.stats_button.show()
+            self.resize(360, 205)
+            self.buttons_widget.show()
+        self.speaker_widget.show()
 
     def refresh(self) -> None:
         remaining = self.timer_model.signed_remaining_seconds()

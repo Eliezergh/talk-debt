@@ -1,3 +1,4 @@
+import json
 import unittest
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -22,7 +23,12 @@ class StatsStoreTests(unittest.TestCase):
             store = StatsStore(path=path, now_fn=now.now)
 
             session_id = store.start_session()
-            store.add_loop(session_id, allocated_seconds=120, consumed_seconds=140)
+            store.add_loop(
+                session_id,
+                allocated_seconds=120,
+                consumed_seconds=140,
+                speaker_name="Alex",
+            )
             store.end_session(session_id)
 
             session = store.get_session(session_id)
@@ -33,6 +39,7 @@ class StatsStoreTests(unittest.TestCase):
         loop = session.loops[0]
         self.assertEqual(loop.allocated_seconds, 120)
         self.assertEqual(loop.consumed_seconds, 140)
+        self.assertEqual(loop.speaker_name, "Alex")
         self.assertTrue(loop.went_over)
         self.assertEqual(loop.over_seconds, 20)
         self.assertIsNotNone(session.ended_at)
@@ -55,6 +62,37 @@ class StatsStoreTests(unittest.TestCase):
 
         self.assertEqual(len(sessions), 1)
         self.assertEqual(sessions[0].session_id, recent_session)
+
+    def test_loads_legacy_loops_without_speaker_name(self) -> None:
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "stats.json"
+            path.write_text(
+                json.dumps(
+                    {
+                        "sessions": [
+                            {
+                                "session_id": "legacy",
+                                "started_at": "2026-06-16T12:00:00+00:00",
+                                "loops": [
+                                    {
+                                        "timestamp": "2026-06-16T12:01:00+00:00",
+                                        "allocated_seconds": 120,
+                                        "consumed_seconds": 110,
+                                    }
+                                ],
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            store = StatsStore(path=path)
+
+            session = store.get_session("legacy")
+
+        self.assertIsNotNone(session)
+        assert session is not None
+        self.assertEqual(session.loops[0].speaker_name, "Unassigned")
 
 
 if __name__ == "__main__":
