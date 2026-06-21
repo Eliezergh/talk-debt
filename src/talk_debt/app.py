@@ -4,14 +4,15 @@ import sys
 from datetime import datetime
 from html import escape
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QPoint
+from PySide6.QtWidgets import QApplication, QDialog
 
 from .icon import create_app_icon
-from .settings import SettingsStore
+from .settings import DEFAULT_SPEAKER_LABEL, SettingsStore
 from .stats import SessionStat, StatsStore
 from .timer import TalkDebtTimer
 from .tray import TrayController
-from .ui import StatsDialog, TimerWindow
+from .ui import SpeakerSettingsDialog, StatsDialog, TimerWindow
 
 
 class TalkDebtApp:
@@ -35,6 +36,8 @@ class TalkDebtApp:
         self.window.reset_requested.connect(self._reset)
         self.window.next_speaker_requested.connect(self._next_speaker)
         self.window.stats_requested.connect(self._show_stats)
+        self.window.speaker_changed.connect(self._set_current_speaker)
+        self.window.manage_speakers_requested.connect(self._edit_speakers)
 
         self.tray = TrayController(
             self.window,
@@ -50,12 +53,36 @@ class TalkDebtApp:
 
         self._apply_loaded_settings()
         self.window.show()
+        self._ensure_window_visible()
 
     def _apply_loaded_settings(self) -> None:
         if self.settings.window_x is not None and self.settings.window_y is not None:
             self.window.move(self.settings.window_x, self.settings.window_y)
+        self.window.set_speakers(self.settings.speaker_names, self.settings.current_speaker)
         self._set_mode(self.settings.mode)
         self._set_always_on_top(self.settings.always_on_top)
+
+    def _set_current_speaker(self, speaker_name: str) -> None:
+        current = speaker_name.strip() or DEFAULT_SPEAKER_LABEL
+        if current == self.settings.current_speaker:
+            return
+        self.settings.current_speaker = current
+        self._save_settings()
+
+    def _edit_speakers(self) -> None:
+        dialog = SpeakerSettingsDialog(self.settings.speaker_names, self.window)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        speaker_names = dialog.speaker_names()
+        self.settings.speaker_names = speaker_names
+        if speaker_names:
+            if self.settings.current_speaker not in speaker_names:
+                self.settings.current_speaker = speaker_names[0]
+        else:
+            self.settings.current_speaker = DEFAULT_SPEAKER_LABEL
+        self.window.set_speakers(self.settings.speaker_names, self.settings.current_speaker)
+        self._save_settings()
 
     def _toggle_start_stop(self) -> None:
         if self.timer_model.is_running:
@@ -106,12 +133,29 @@ class TalkDebtApp:
         self.settings.window_y = int(pos.y())
         self.settings_store.save(self.settings)
 
+    def _ensure_window_visible(self) -> None:
+        frame = self.window.frameGeometry()
+        center = frame.center()
+        if self.qt_app.screenAt(center) is not None:
+            return
+
+        screen = self.qt_app.primaryScreen()
+        if screen is None:
+            return
+
+        geometry = screen.availableGeometry()
+        x = geometry.x() + max(0, (geometry.width() - frame.width()) // 2)
+        y = geometry.y() + max(0, (geometry.height() - frame.height()) // 2)
+        self.window.move(QPoint(x, y))
+        self._save_settings()
+
     def _finalize_current_loop(self) -> None:
         consumed = int(round(self.timer_model.elapsed_seconds()))
         self.stats_store.add_loop(
             self.session_id,
             allocated_seconds=self._loop_allocated_seconds,
             consumed_seconds=consumed,
+            speaker_name=self.settings.current_speaker,
         )
 
     @staticmethod
@@ -138,10 +182,9 @@ class TalkDebtApp:
         for idx, loop in enumerate(session.loops, start=1):
             color = "#ff4d4f" if loop.went_over else "#22c55e"
             status = "over time" if loop.went_over else "in time"
-            detail = (
-                f"{idx}. consumed {self._format_duration(loop.consumed_seconds)} / "
-                f"planned {self._format_duration(loop.allocated_seconds)}"
-            )
+            consumed = self._format_duration(loop.consumed_seconds)
+            planned = self._format_duration(loop.allocated_seconds)
+            detail = f"{idx}. {loop.speaker_name} - consumed {consumed} / planned {planned}"
             if loop.went_over:
                 detail += f" (over by {self._format_duration(loop.over_seconds)})"
             row = (
