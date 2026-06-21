@@ -1,3 +1,4 @@
+import json
 import runpy
 import sys
 import types
@@ -92,6 +93,27 @@ class SettingsStoreTests(unittest.TestCase):
 
             self.assertEqual(loaded.speaker_names, ["Alex", "Sam"])
             self.assertEqual(loaded.current_speaker, "Alex")
+
+    def test_load_migrates_from_legacy_location(self) -> None:
+        with TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            new_path = base / ".talk-debt" / "settings.json"
+            legacy_path = base / ".talk_debt.json"
+            legacy_payload = {
+                "duration_seconds": 180,
+                "speaker_names": ["Alex", "Sam"],
+                "current_speaker": "Sam",
+            }
+            legacy_path.write_text(json.dumps(legacy_payload), encoding="utf-8")
+            store = SettingsStore(path=new_path, legacy_path=legacy_path)
+
+            loaded = store.load()
+
+            self.assertEqual(loaded.duration_seconds, 180)
+            self.assertEqual(loaded.current_speaker, "Sam")
+            self.assertTrue(new_path.exists())
+            persisted = json.loads(new_path.read_text(encoding="utf-8"))
+            self.assertEqual(persisted["duration_seconds"], 180)
 
 
 class MainEntrypointTests(unittest.TestCase):

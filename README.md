@@ -16,6 +16,10 @@ keeps counting in red once time goes negative.
 - Compact mode and screen-share mode
 - Local JSON settings persistence (duration, position, modes, speakers)
 
+Data files are stored under `~/.talk-debt/`:
+- `settings.json`
+- `stats.json`
+
 ## Requirements
 
 - Python 3.12+
