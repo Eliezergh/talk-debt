@@ -7,7 +7,8 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-DEFAULT_STATS_PATH = Path.home() / ".talk_debt_stats.json"
+from .paths import DEFAULT_STATS_PATH, LEGACY_STATS_PATH, ensure_app_data_dir
+
 RETENTION_DAYS = 7
 DEFAULT_SPEAKER_LABEL = "Unassigned"
 
@@ -56,24 +57,27 @@ class StatsStore:
     def __init__(
         self,
         path: Path = DEFAULT_STATS_PATH,
+        legacy_path: Path | None = None,
         now_fn: Callable[[], datetime] = _utcnow,
     ) -> None:
         self.path = path
+        if legacy_path is not None:
+            self.legacy_path = legacy_path
+        elif path == DEFAULT_STATS_PATH:
+            self.legacy_path = LEGACY_STATS_PATH
+        else:
+            self.legacy_path = None
         self._now_fn = now_fn
 
     def _now(self) -> datetime:
         return self._now_fn()
 
-    def _load(self) -> StatsData:
-        if not self.path.exists():
-            return StatsData()
-        try:
-            payload = json.loads(self.path.read_text(encoding="utf-8"))
-        except (json.JSONDecodeError, OSError):
-            return StatsData()
-
+    @staticmethod
+    def _decode(payload: dict[str, object]) -> StatsData:
         sessions: list[SessionStat] = []
         for item in payload.get("sessions", []):
+            if not isinstance(item, dict):
+                continue
             loops = [
                 LoopStat(
                     timestamp=str(loop.get("timestamp")),
@@ -96,6 +100,7 @@ class StatsStore:
                     or DEFAULT_SPEAKER_LABEL,
                 )
                 for loop in item.get("loops", [])
+                if isinstance(loop, dict)
             ]
             sessions.append(
                 SessionStat(
@@ -107,7 +112,36 @@ class StatsStore:
             )
         return StatsData(sessions=sessions)
 
+    def _read(self, path: Path) -> StatsData | None:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return None
+        if not isinstance(payload, dict):
+            return None
+        return self._decode(payload)
+
+    def _load(self) -> StatsData:
+        if self.path.exists():
+            data = self._read(self.path)
+            if data is not None:
+                return data
+            return StatsData()
+
+        if self.legacy_path is None or not self.legacy_path.exists():
+            return StatsData()
+
+        legacy_data = self._read(self.legacy_path)
+        if legacy_data is None:
+            return StatsData()
+
+        self._save(legacy_data)
+        self.legacy_path.unlink(missing_ok=True)
+        return legacy_data
+
     def _save(self, data: StatsData) -> None:
+        ensure_app_data_dir()
+        self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(json.dumps(asdict(data), indent=2), encoding="utf-8")
 
     def _prune(self, data: StatsData) -> None:

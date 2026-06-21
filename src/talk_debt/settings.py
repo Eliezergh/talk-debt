@@ -4,7 +4,8 @@ import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-DEFAULT_CONFIG_PATH = Path.home() / ".talk_debt.json"
+from .paths import DEFAULT_CONFIG_PATH, LEGACY_CONFIG_PATH, ensure_app_data_dir
+
 DEFAULT_SPEAKER_LABEL = "Unassigned"
 
 
@@ -46,17 +47,30 @@ class AppSettings:
 
 
 class SettingsStore:
-    def __init__(self, path: Path = DEFAULT_CONFIG_PATH) -> None:
+    def __init__(
+        self,
+        path: Path = DEFAULT_CONFIG_PATH,
+        legacy_path: Path | None = None,
+    ) -> None:
         self.path = path
+        if legacy_path is not None:
+            self.legacy_path = legacy_path
+        elif path == DEFAULT_CONFIG_PATH:
+            self.legacy_path = LEGACY_CONFIG_PATH
+        else:
+            self.legacy_path = None
 
-    def load(self) -> AppSettings:
-        if not self.path.exists():
-            return AppSettings()
+    def _read_json(self, path: Path) -> dict[str, object] | None:
         try:
-            data = json.loads(self.path.read_text(encoding="utf-8"))
+            payload = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
-            return AppSettings()
+            return None
+        if not isinstance(payload, dict):
+            return None
+        return payload
 
+    @staticmethod
+    def _to_settings(data: dict[str, object]) -> AppSettings:
         speaker_names = _normalize_speaker_names(data.get("speaker_names", []))
         return AppSettings(
             duration_seconds=max(1, int(data.get("duration_seconds", 120))),
@@ -68,5 +82,26 @@ class SettingsStore:
             current_speaker=_resolve_current_speaker(data.get("current_speaker"), speaker_names),
         )
 
+    def load(self) -> AppSettings:
+        if self.path.exists():
+            data = self._read_json(self.path)
+            if data is not None:
+                return self._to_settings(data)
+            return AppSettings()
+
+        if self.legacy_path is None or not self.legacy_path.exists():
+            return AppSettings()
+
+        data = self._read_json(self.legacy_path)
+        if data is None:
+            return AppSettings()
+
+        settings = self._to_settings(data)
+        self.save(settings)
+        self.legacy_path.unlink(missing_ok=True)
+        return settings
+
     def save(self, settings: AppSettings) -> None:
+        ensure_app_data_dir()
+        self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(json.dumps(asdict(settings), indent=2), encoding="utf-8")

@@ -94,6 +94,34 @@ class StatsStoreTests(unittest.TestCase):
         assert session is not None
         self.assertEqual(session.loops[0].speaker_name, "Unassigned")
 
+    def test_load_migrates_from_legacy_location(self) -> None:
+        with TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            new_path = base / ".talk-debt" / "stats.json"
+            legacy_path = base / ".talk_debt_stats.json"
+            legacy_path.write_text(
+                json.dumps(
+                    {
+                        "sessions": [
+                            {
+                                "session_id": "legacy",
+                                "started_at": "2026-06-16T12:00:00+00:00",
+                                "loops": [],
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            store = StatsStore(path=new_path, legacy_path=legacy_path)
+
+            sessions = store.list_sessions()
+
+            self.assertEqual(len(sessions), 1)
+            self.assertEqual(sessions[0].session_id, "legacy")
+            self.assertTrue(new_path.exists())
+            self.assertFalse(legacy_path.exists())
+
 
 if __name__ == "__main__":
     unittest.main()
