@@ -120,6 +120,7 @@ class StatsStoreTests(unittest.TestCase):
             self.assertEqual(len(sessions), 1)
             self.assertEqual(sessions[0].session_id, "legacy")
             self.assertTrue(new_path.exists())
+            self.assertFalse(legacy_path.exists())
 
 
 if __name__ == "__main__":

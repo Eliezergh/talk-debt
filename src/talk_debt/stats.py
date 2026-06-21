@@ -136,6 +136,7 @@ class StatsStore:
             return StatsData()
 
         self._save(legacy_data)
+        self.legacy_path.unlink(missing_ok=True)
         return legacy_data
 
     def _save(self, data: StatsData) -> None:

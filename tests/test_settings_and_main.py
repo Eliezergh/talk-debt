@@ -112,6 +112,7 @@ class SettingsStoreTests(unittest.TestCase):
             self.assertEqual(loaded.duration_seconds, 180)
             self.assertEqual(loaded.current_speaker, "Sam")
             self.assertTrue(new_path.exists())
+            self.assertFalse(legacy_path.exists())
             persisted = json.loads(new_path.read_text(encoding="utf-8"))
             self.assertEqual(persisted["duration_seconds"], 180)
 

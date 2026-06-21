@@ -98,6 +98,7 @@ class SettingsStore:
 
         settings = self._to_settings(data)
         self.save(settings)
+        self.legacy_path.unlink(missing_ok=True)
         return settings
 
     def save(self, settings: AppSettings) -> None:
